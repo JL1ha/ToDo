@@ -2,7 +2,12 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Main {
     private static TodoList todoList = new TodoList();
@@ -20,16 +25,26 @@ public class Main {
         JScrollPane scrollPane = new JScrollPane(displayArea);
 
         JTextField descriptionField = new JTextField(20);
-        JTextField dateField = new JTextField(10);
-        JTextField priorityField = new JTextField(5);
+
+        
+        List<String> dateOptions = new ArrayList<>();
+        LocalDate currentDate = LocalDate.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        for (int i = 0; i < 30; i++) {
+            dateOptions.add(currentDate.plusDays(i).format(formatter));
+        }
+        JComboBox<String> dateDropdown = new JComboBox<>(dateOptions.toArray(new String[0]));
+
+        String[] priorityOptions = {"1 - High", "2 - Medium", "3 - Low"};
+        JComboBox<String> priorityDropdown = new JComboBox<>(priorityOptions);
 
         JButton addButton = new JButton("Add Item");
         addButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 String description = descriptionField.getText();
-                String date = dateField.getText();
-                int priority = Integer.parseInt(priorityField.getText());
+                String date = (String) dateDropdown.getSelectedItem();
+                int priority = priorityDropdown.getSelectedIndex() + 1;
                 todoList.addItem(description, date, priority);
                 displayArea.setText(todoList.toString());
             }
@@ -50,11 +65,20 @@ public class Main {
         saveButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                String filename = JOptionPane.showInputDialog("Enter filename to save:");
-                try {
-                    todoList.saveToFile(filename);
-                } catch (IOException ex) {
-                    JOptionPane.showMessageDialog(frame, "Error saving to file: " + ex.getMessage());
+                JFileChooser fileChooser = new JFileChooser();
+                File defaultDir = new File(System.getProperty("user.home"), "Downloads/ToDo Application");
+                if (!defaultDir.exists()) {
+                    defaultDir.mkdirs();
+                }
+                fileChooser.setCurrentDirectory(defaultDir);
+                int option = fileChooser.showSaveDialog(frame);
+                if (option == JFileChooser.APPROVE_OPTION) {
+                    File file = fileChooser.getSelectedFile();
+                    try {
+                        todoList.saveToFile(file.getAbsolutePath());
+                    } catch (IOException ex) {
+                        JOptionPane.showMessageDialog(frame, "Error saving to file: " + ex.getMessage());
+                    }
                 }
             }
         });
@@ -63,12 +87,21 @@ public class Main {
         loadButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                String filename = JOptionPane.showInputDialog("Enter filename to load:");
-                try {
-                    todoList.loadFromFile(filename);
-                    displayArea.setText(todoList.toString());
-                } catch (IOException ex) {
-                    JOptionPane.showMessageDialog(frame, "Error loading from file: " + ex.getMessage());
+                JFileChooser fileChooser = new JFileChooser();
+                File defaultDir = new File(System.getProperty("user.home"), "Downloads/ToDo Application");
+                if (!defaultDir.exists()) {
+                    defaultDir.mkdirs();
+                }
+                fileChooser.setCurrentDirectory(defaultDir);
+                int option = fileChooser.showOpenDialog(frame);
+                if (option == JFileChooser.APPROVE_OPTION) {
+                    File file = fileChooser.getSelectedFile();
+                    try {
+                        todoList.loadFromFile(file.getAbsolutePath());
+                        displayArea.setText(todoList.toString());
+                    } catch (IOException ex) {
+                        JOptionPane.showMessageDialog(frame, "Error loading from file: " + ex.getMessage());
+                    }
                 }
             }
         });
@@ -94,9 +127,9 @@ public class Main {
         panel.add(new JLabel("Description:"));
         panel.add(descriptionField);
         panel.add(new JLabel("Date (YYYY-MM-DD):"));
-        panel.add(dateField);
+        panel.add(dateDropdown);
         panel.add(new JLabel("Priority:"));
-        panel.add(priorityField);
+        panel.add(priorityDropdown);
         panel.add(addButton);
         panel.add(removeButton);
         panel.add(saveButton);
